@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform.lock.hcl
+
+# Lambda
+lambda.zip
+__pycache__/
+*.pyc
+
+# Environment / Secrets
+.env
+*.pem
+credentials.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
