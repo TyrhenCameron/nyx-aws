@@ -52,19 +52,19 @@ resource "aws_cloudwatch_metric_alarm" "error_rate_high" {
 # need to monitor how many messages are sitting in the Dead Letter Queue
 # high dlq depth means lots of failures which means we have to shut down the chaos
 resource "aws_cloudwatch_metric_alarm" "dlq_depth_high" {
-  alarm_name = "${local.name_prefix}-dlq-depth-high"
+  alarm_name          = "${local.name_prefix}-dlq-depth-high"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods = 1
+  evaluation_periods  = 1
 
   #sqs metric for messages that are available to receive
   metric_name = "ApproximateNumberOfMessagesVisible"
-  namespace = "AWS/SQS"
+  namespace   = "AWS/SQS"
 
-  period = 60
-  statistic = "Maximum" # Worst case in the period
-  threshold = var.dlq_depth_threshold $ 100
+  period    = 60
+  statistic = "Maximum"               # Worst case in the period
+  threshold = var.dlq_depth_threshold # 100
 
-  alarm_description = "DLQ has too many messages -> stops FIS experiment"
+  alarm_description  = "DLQ has too many messages -> stops FIS experiment"
   treat_missing_data = "notBreaching"
 
   dimensions = {
@@ -77,20 +77,20 @@ resource "aws_cloudwatch_metric_alarm" "dlq_depth_high" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "latency_high" {
-  alarm_name = "${local.name_prefix}-latency-high"
+  alarm_name          = "${local.name_prefix}-latency-high"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods = 2
+  evaluation_periods  = 2
 
   metric_name = "Duration"
-  namespace = "AWS/Lambda"
-  period = 60
+  namespace   = "AWS/Lambda"
+  period      = 60
 
   # have to use extended_statistic instead of statistic
   extended_statistic = "p95"
 
   threshold = 5000 # translates to 5 seconds
 
-  alarm_description = "Lambda p95 latency too high"
+  alarm_description  = "Lambda p95 latency too high"
   treat_missing_data = "notBreaching"
 
   dimensions = {
@@ -105,7 +105,7 @@ resource "aws_cloudwatch_metric_alarm" "latency_high" {
 # cloudwatch dashboard
 # https://{region}.console.aws.amazon.com/cloudwatch/home#dashboards  (is this okay to have in code??)
 
-resouresource "aws_cloudwatch_dashboard" "main" {
+resource "aws_cloudwatch_dashboard" "main" {
   dashboard_name = local.name_prefix # gives us nemesis-dev
 
   # dashboard body which is json
@@ -115,11 +115,11 @@ resouresource "aws_cloudwatch_dashboard" "main" {
     widgets = [
       # title widget
       {
-        type = "text"
-        x = 0 #column
-        y = 0 #row
-        width = 24 #fill width
-        height = 1 # 1 row tall
+        type   = "text"
+        x      = 0  #column
+        y      = 0  #row
+        width  = 24 #fill width
+        height = 1  # 1 row tall
         properties = {
           markdown = "Nyx AWS Chaos Engineering Dashboard"
         }
@@ -127,13 +127,13 @@ resouresource "aws_cloudwatch_dashboard" "main" {
 
       # Lambda invocations (for metric widget)
       {
-        type = "metric"
-        x = 0
-        y = 1
-        width = 8 # third of dashboard width
+        type   = "metric"
+        x      = 0
+        y      = 1
+        width  = 8 # third of dashboard width
         height = 6
         properties = {
-          title = "Lambda Invocations"
+          title  = "Lambda Invocations"
           region = local.region
           # metrics array (array of an array) format should be [namespace, metric name, dimension_name, dimension_value, {options}]
           metrics = [
@@ -143,7 +143,7 @@ resouresource "aws_cloudwatch_dashboard" "main" {
               "FunctionName",
               aws_lambda_function.processor.function_name,
 
-              { stat = "Sum", period = 60}
+              { stat = "Sum", period = 60 }
             ]
           ]
         }
@@ -151,13 +151,13 @@ resouresource "aws_cloudwatch_dashboard" "main" {
 
       # lambda errors widget
       {
-        type = "metric"
-        x = 8 # start at column 8 (after invocations widget)
-        y = 1
-        width = 8
+        type   = "metric"
+        x      = 8 # start at column 8 (after invocations widget)
+        y      = 1
+        width  = 8
         height = 6
         properties = {
-          title = "Lambda Errors"
+          title  = "Lambda Errors"
           region = local.region
           # metrics array (array of an array) format should be [namespace, metric name, dimension_name, dimension_value, {options}]
           metrics = [
@@ -166,7 +166,7 @@ resouresource "aws_cloudwatch_dashboard" "main" {
               "Errors",
               "FunctionName",
               aws_lambda_function.processor.function_name,
-              { stat = "Sum", period = 60, color = "#d62728"}
+              { stat = "Sum", period = 60, color = "#d62728" }
             ]
           ]
         }
@@ -174,18 +174,18 @@ resouresource "aws_cloudwatch_dashboard" "main" {
 
       # lambda duration (latency)
       {
-        type = "metric"
-        x = 16
-        y = 1
-        width = 8
+        type   = "metric"
+        x      = 16
+        y      = 1
+        width  = 8
         height = 6
         properties = {
-          title = "Lambda Duration (p95)"
+          title  = "Lambda Duration (p95)"
           region = local.region
 
           # metrics array (array of an array) format should be [namespace, metric name, dimension_name, dimension_value, {options}]
           metrics = {
-            title = "Lambda Duration (p95)"
+            title  = "Lambda Duration (p95)"
             region = local.region
             metrics = [
               [
@@ -193,7 +193,7 @@ resouresource "aws_cloudwatch_dashboard" "main" {
                 "Duration",
                 "FunctionName",
                 aws_lambda_function.processor.function_name,
-                { stat = "p95", period = 60}
+                { stat = "p95", period = 60 }
               ]
             ]
           }
@@ -201,14 +201,14 @@ resouresource "aws_cloudwatch_dashboard" "main" {
       },
 
       #dlq depth
-      [
-        type = "metric"
-        x = 0
-        y = 7 # so it will be on second row of widgets
-        width = 12
+      {
+        type   = "metric"
+        x      = 0
+        y      = 7 # so it will be on second row of widgets
+        width  = 12
         height = 6
         properties = {
-          title = "DLQ Depth"
+          title  = "DLQ Depth"
           region = local.region
           # metrics array (array of an array) format should be [namespace, metric name, dimension_name, dimension_value, {options}]
           metrics = [
@@ -221,16 +221,16 @@ resouresource "aws_cloudwatch_dashboard" "main" {
             ]
           ]
         }
-      ],
+      },
       # lambda throttles
       {
-        type = "metric"
-        x = 12
-        y = 7
-        width = 12
+        type   = "metric"
+        x      = 12
+        y      = 7
+        width  = 12
         height = 6
         properties = {
-          title = "Lambda Throttles"
+          title  = "Lambda Throttles"
           region = local.region
           # metrics array (array of an array) format should be [namespace, metric name, dimension_name, dimension_value, {options}]
           metrics = [
@@ -239,7 +239,7 @@ resouresource "aws_cloudwatch_dashboard" "main" {
               "Throttles",
               "FunctionName",
               aws_lambda_function.processor.function_name,
-              { stat = "Sum", period = 60, color = "#9467bd"}
+              { stat = "Sum", period = 60, color = "#9467bd" }
             ]
           ]
         }
