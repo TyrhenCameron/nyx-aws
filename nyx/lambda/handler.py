@@ -19,7 +19,7 @@ import hashlib # generate unique IDs
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# aws client intialization
+# aws client initialization
 # boto3 clients are interface to AWS service
 
 s3 = boto3.client('s3')
@@ -154,6 +154,10 @@ def process_s3_record(record: dict, table) -> bool:
         'pk': f"FILE#{record_id}",
         'sk': f"PROCESSED#{event_time}",
 
+        # GSI keys for time-based queries
+        'gsi1pk': event_time[:10], # date only
+        'gsi1sk': f"FILE#{record_id}", # for uniqueness
+
         # S3 Metadata
         'bucket': bucket,
         'key': key,
@@ -167,6 +171,14 @@ def process_s3_record(record: dict, table) -> bool:
 
         'ttl': int(datetime.now(timezone.utc).timestamp()) + (7 * 24 * 60 * 60)
     }
+
+    response = table.query(
+        IndexName="gsi1",
+        KeyConditionExpression="gsi1pk = :date",
+        ExpressionAttributeValues={
+            ":date": "2024-01-15"
+        }
+    )
 
     # write to dynamodb
 
