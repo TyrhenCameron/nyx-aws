@@ -145,6 +145,7 @@ resource "aws_lambda_permission" "s3_invoke" {
 resource "aws_cloudwatch_log_group" "lambda" {
   name = "aws/lambda/${aws_lambda_function.processor.function_name}"
 
-  # define retenetion
+  # define retention
+  # 0 = never delete (not good for costs though)
   retention_in_days = 14
 }
