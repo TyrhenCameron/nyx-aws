@@ -182,24 +182,12 @@ resource "aws_cloudwatch_dashboard" "main" {
         properties = {
           title  = "Lambda Duration (p95)"
           region = local.region
-
           # metrics array (array of an array) format should be [namespace, metric name, dimension_name, dimension_value, {options}]
-          metrics = {
-            title  = "Lambda Duration (p95)"
-            region = local.region
-            metrics = [
-              [
-                "AWS/Lambda",
-                "Duration",
-                "FunctionName",
-                aws_lambda_function.processor.function_name,
-                { stat = "p95", period = 60 }
-              ]
-            ]
-          }
+          metrics = [
+            ["AWS/Lambda", "Duration", "FunctionName", aws_lambda_function.processor.function_name, { stat = "p95", period = 60 }]
+          ]
         }
       },
-
       #dlq depth
       {
         type   = "metric"

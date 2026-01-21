@@ -24,7 +24,7 @@ output "lambda_function_name" {
   value       = aws_lambda_function.processor.function_name
 }
 
-output "lambda_function.arn" {
+output "lambda_function_arn" {
   description = "ARN of the Lambda function"
   value       = aws_lambda_function.processor.arn
 }
@@ -67,7 +67,7 @@ output "demo_commands" {
 
   # 1. Upload test files to trigger Lambda:
   for i in {1..10}; do echo "test data $i" | aws s3 cp -
-  s3://#{aws_s3_bucket.uploads.id}/test-$i.txt; done
+  s3://${aws_s3_bucket.uploads.id}/test-$i.txt; done
 
   # 2. Start Lambda throttle experiment
   aws fis start-experiment --experiment-template-id

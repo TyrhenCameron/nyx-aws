@@ -34,15 +34,15 @@ provider "aws" {
 }
 
 # get current AWS account ID
-data "aws_caller_identify" "current" {}
+data "aws_caller_identity" "current" {}
 
 # Get current region
 data "aws_region" "current" {}
 
 locals {
-  account_id = data.aws_caller_identify.current.account_id
+  account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.name
 
   # naming convention
-  name_prefix = "${var.project_name} - ${var.environment}"
+  name_prefix = "${var.project_name}-${var.environment}"
 }

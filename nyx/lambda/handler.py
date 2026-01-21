@@ -88,16 +88,16 @@ def lambda_handler(event: dict, context: Any) -> dict:
             # re-reraise -> lambda retries invocation (2 time if async) -> send to dlq after retries exhausted
             raise
 
-        response = {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': 'Processing complete',
-                'processed': processed,
-                'errors': errors
-            })
-        }
-        logger.info(f"Response: {response}")
-        return response
+    response = {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Processing complete',
+            'processed': processed,
+            'errors': errors
+        })
+    }
+    logger.info(f"Response: {response}")
+    return response
 
 def process_s3_record(record: dict, table) -> bool:
     """
@@ -171,14 +171,6 @@ def process_s3_record(record: dict, table) -> bool:
 
         'ttl': int(datetime.now(timezone.utc).timestamp()) + (7 * 24 * 60 * 60)
     }
-
-    response = table.query(
-        IndexName="gsi1",
-        KeyConditionExpression="gsi1pk = :date",
-        ExpressionAttributeValues={
-            ":date": "2024-01-15"
-        }
-    )
 
     # write to dynamodb
 

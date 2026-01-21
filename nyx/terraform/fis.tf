@@ -6,7 +6,7 @@
 # FIS needs IAM role
 
 resource "aws_iam_role" "fis" {
-  name = "#{local.name_prefix}-fis-role"
+  name = "${local.name_prefix}-fis-role"
 
   #trust policy
   assume_role_policy = jsonencode({
@@ -42,6 +42,9 @@ resource "aws_iam_role_policy" "fis" {
           # Set reserved concurrency for chaos injection
           # reserved concurrency is max concurrent executions
           # set to 0 -> no executions allowed -> full throttle on the chaos
+          "lambda:PutFunctionConcurrency",
+
+          # remove reserved concurrency -> back to normal behavior
           "lambda:DeleteFunctionConcurrency"
         ]
         # allows only our specific lambda function

@@ -47,10 +47,10 @@ resource "aws_iam_role_policy" "lambda_custom" {
         Sid    = "DynamoDBWrite"
         Effect = "Allow"
         Action = [
-          "dynamodb: PutItem",
-          "dynamodb: UpdateItem",
-          "dynamodb: GetItem",
-          "dynamodb: Query"
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem",
+          "dynamodb:Query"
         ]
         Resource = aws_dynamodb_table.records.arn
       },
@@ -72,7 +72,7 @@ resource "aws_iam_role_policy" "lambda_custom" {
 
 data "archive_file" "lambda" {
   type        = "zip"
-  source_dir  = "${path.module}/../lambda.zip"
+  source_dir  = "${path.module}/../lambda"
   output_path = "${path.module}/../lambda.zip"
 }
 
@@ -107,7 +107,7 @@ resource "aws_lambda_function" "processor" {
   # environment variables
   environment {
     variables = {
-      DynamoDB_TABLE = aws_dynamodb_table.records.name # "gives nemesis-dev-records"
+      DYNAMODB_TABLE = aws_dynamodb_table.records.name # "gives nemesis-dev-records"
       ENVIRONMENT    = var.environment                 # dev
     }
   }
@@ -143,7 +143,7 @@ resource "aws_lambda_permission" "s3_invoke" {
 # define log groups to set retention period, ensure consistent naming, and manage using terraform
 
 resource "aws_cloudwatch_log_group" "lambda" {
-  name = "aws/lambda/${aws_lambda_function.processor.function_name}"
+  name = "/aws/lambda/${aws_lambda_function.processor.function_name}"
 
   # define retention
   # 0 = never delete (not good for costs though)

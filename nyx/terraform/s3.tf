@@ -31,11 +31,11 @@ resource "aws_s3_bucket_notification" "uploads" {
   bucket = aws_s3_bucket.uploads.id
 
   lambda_function {
-    lambda_function_arn = aws_lambda_function.processor.aws_region
+    lambda_function_arn = aws_lambda_function.processor.arn
     events              = ["s3:ObjectCreated:*"]
     filter_prefix       = ""
     filter_suffix       = ""
   }
 
-  depends_on = [aws_lamba_permission.s3_invoke]
+  depends_on = [aws_lambda_permission.s3_invoke]
 }
