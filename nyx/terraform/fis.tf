@@ -181,3 +181,9 @@ resource "aws_fis_experiment_template" "lambda_concurrency_limit" {
     Experiment = "lambda-concurrency-limit"
   }
 }
+
+# aws fis start-experiment -- experiment-template-id EXT123
+# FIS assumes role -> executes actions ->
+# FIS continuously checks CloudWatch alarms ->
+# stop phase: a. manual stop --id EXP456 b. auto-stop (alarm enters alarm state) c. duration expires (set later)
+# Rollback -> FIS calls (DeleteFunctionConcurrency) -> lambda returns to normal
