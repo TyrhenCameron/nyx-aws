@@ -35,7 +35,7 @@ output "dlq_url" {
   value       = aws_sqs_queue.dlq.url
 }
 
-# FIS outputs
+#FIS outputs
 output "fis_experiment_lambda_throttle_id" {
   description = "FIS experiment template ID for Lambda throttle"
   value       = aws_fis_experiment_template.lambda_throttle.id
@@ -69,9 +69,8 @@ output "demo_commands" {
   for i in {1..10}; do echo "test data $i" | aws s3 cp -
   s3://${aws_s3_bucket.uploads.id}/test-$i.txt; done
 
-  # 2. Start Lambda throttle experiment
-  aws fis start-experiment --experiment-template-id
-  ${aws_fis_experiment_template.lambda_throttle.id}
+  # 2. Start Lambda throttle experiment (create via CLI first - see README)
+  aws fis start-experiment --experiment-template-id <TEMPLATE_ID>
 
   # 3. Check DLQ depth (which should increase during chaos):
   aws sqs get-queue-attributes --queue-url ${aws_sqs_queue.dlq.url}
@@ -88,4 +87,13 @@ output "demo_commands" {
   # aws fis stop-experiment --id <experiment-id>
 
   EOT
+}
+
+output "fis_role_arn" {
+  value = aws_iam_role.fis.arn
+}
+
+output "api_endpoint" {
+  description = "API Gateway endpoint for load testing"
+  value       = aws_apigatewayv2_api.main.api_endpoint
 }

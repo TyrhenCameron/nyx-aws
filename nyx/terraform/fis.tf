@@ -36,15 +36,12 @@ resource "aws_iam_role_policy" "fis" {
         Sid    = "LambdaChaos"
         Effect = "Allow"
         Action = [
-          # read current concurrency settings
+          "lambda:GetFunction",
+          "lambda:GetFunctionConfiguration",
+          "lambda:UpdateFunctionConfiguration",
+          "lambda:InvokeFunction",
           "lambda:GetFunctionConcurrency",
-
-          # Set reserved concurrency for chaos injection
-          # reserved concurrency is max concurrent executions
-          # set to 0 -> no executions allowed -> full throttle on the chaos
           "lambda:PutFunctionConcurrency",
-
-          # remove reserved concurrency -> back to normal behavior
           "lambda:DeleteFunctionConcurrency"
         ]
         # allows only our specific lambda function
@@ -66,9 +63,9 @@ resource "aws_iam_role_policy" "fis" {
 }
 
 # -- experiment templates --
-# experiment 1: full lambda throttle
-# sets Lambda concurrency to 0 blocking all invocations
-# tests s3 retry behavior, dlq functionality
+# Terraform AWS provider doesn't support Lambda FIS targets yet
+# Create via AWS CLI after deploy
+
 
 resource "aws_fis_experiment_template" "lambda_throttle" {
   # description shows in FIS console and CloudTrail logs
@@ -184,6 +181,7 @@ resource "aws_fis_experiment_template" "lambda_concurrency_limit" {
     Experiment = "lambda-concurrency-limit"
   }
 }
+
 
 # aws fis start-experiment -- experiment-template-id EXT123
 # FIS assumes role -> executes actions ->
