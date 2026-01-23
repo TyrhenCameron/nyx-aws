@@ -14,6 +14,7 @@ import boto3
 from datetime import datetime, timezone
 from typing import Any
 import hashlib # generate unique IDs
+import random
 
 # logging for structured output with levels (info, error, etc.)
 logger = logging.getLogger()
@@ -30,64 +31,40 @@ dynamodb = boto3.resource('dynamodb')
 
 TABLE_NAME = os.environ.get('DYNAMODB_TABLE', 'nyx-dev-records')
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'dev')
+# newly added environment variables for us deployment
+CHAOS_ENABLED = os.environ.get('CHAOS_MODE', 'false') == 'true'
+CHAOS_RATE = float(os.environ.get('CHAOS_RATE', '0.5'))
 
 def lambda_handler(event: dict, context: Any) -> dict:
     """
-    AWS Lambda invokes this function with:
-    event = Input data (S3 event in our case)
-    context = Runtime info (request ID, time remaining, etc.)
-
-    Returns:
-    dictionary with statusCode and body (standard Lambda response format)
-
-    S3 Event Structure
-
-    {
-        "Records": [
-        {
-            "eventSource": "aws:s3",
-            "eventTime": "2024-01-15T10:30:00.000Z",
-            "eventName": "ObjectCreated:Put:",
-            "s3": {
-                "bucket": {
-                "name": "nemesis-dev-uploads-123456789012:
-            },
-            "object": {
-                "key": "test-file.txt",
-                "size": 1024,
-                "eTag": "abc123..."
-                }
-            }
-        }
-    ]
-    }
+    Main entry point. Routes to correct handler based on event source.
     """
-    # log incoming event
     logger.info(f"Received event: {json.dumps(event)}")
 
-    # get dynamodb table ref
-    table = dynamodb.Table(TABLE_NAME)
+    if 'Records' in event:
+        # S3 trigger
+        return process_s3_event(event, context)
+    else:
+        # API Gateway trigger
+        return process_api_event(event, context)
 
-    # track processing results
+def process_s3_event(event: dict, context: Any) -> dict:
+    """
+    Process S3 trigger events.
+    """
+    table = dynamodb.Table(TABLE_NAME)
     processed = 0
     errors = []
 
-    # process each S3 record
     for record in event.get('Records', []):
         try:
-            # process single record
             result = process_s3_record(record, table)
             if result:
                 processed += 1
-
         except Exception as e:
             logger.error(f"Error processing record: {e}")
             errors.append(str(e))
-
-            # re-raising the exception is important
-            # re-reraise -> lambda retries invocation (2 time if async) -> send to dlq after retries exhausted
             raise
-
     response = {
         'statusCode': 200,
         'body': json.dumps({
@@ -99,25 +76,64 @@ def lambda_handler(event: dict, context: Any) -> dict:
     logger.info(f"Response: {response}")
     return response
 
+def process_api_event(event: dict, context: Any) -> dict:
+    """
+    Process API Gateway requests for load testing.
+    """
+    table = dynamodb.Table(TABLE_NAME)
+
+    if CHAOS_ENABLED and random.random() < CHAOS_RATE:
+        logger.warning("CHAOS: Injecting simulated failure")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': 'Chaos injection: simulated failure'})
+        }
+
+    try:
+        body = json.loads(event.get('body', '{}'))
+
+        record_id = hashlib.sha256(
+            f"api/{body.get('filename', 'unknown')}/{datetime.now(timezone.utc).isoformat()}".encode()
+        ).hexdigest()[:16]
+
+        item = {
+            'pk': f"FILE#{record_id}",
+            'sk': f"PROCESSED#{datetime.now(timezone.utc).isoformat()}",
+            'gsi1pk': datetime.now(timezone.utc).strftime('%Y-%m-%d'),
+            'gsi1sk': f"FILE#{record_id}",
+            'source': 'api',
+            'filename': body.get('filename', 'unknown'),
+            'content_length': len(body.get('content', '')),
+            'processed_at': datetime.now(timezone.utc).isoformat(),
+            'environment': ENVIRONMENT,
+            'ttl': int(datetime.now(timezone.utc).timestamp()) + (7 * 24 * 60 * 60)
+        }
+
+        table.put_item(Item=item)
+        logger.info(f"Stored API record: {item['pk']}")
+
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'Processed', 'id': record_id})
+        }
+
+    except Exception as e:
+        logger.error(f"API processing error: {e}")
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': str(e)})
+        }
+
+
 def process_s3_record(record: dict, table) -> bool:
     """
-    Process a single S3 event record
-
-    1. Extract S3 bucket and key from event
-    2. Call S3 API to get object metadata
-    3. Create DynamoDB item
-    4. Write to DynamoDB
-
-    Args:
-        record: Single S3 event record (from Records array)
-        table: DynamoDB tables resource
-
-    Returns:
-        True if successful
-
-    Raises:
-        Exception on any failure (triggers retry/DLQ)
+    Process S3 trigger events.
     """
+
+    # feature flag chaos injection
+    if CHAOS_ENABLED and random.random() < CHAOS_RATE:
+        logger.warning("CHAOS: Injecting simulated failure")
+        raise Exception("Chaos injection: simulated failure")
 
     # extracting S3 details from events SUPER NESTED
     bucket = record['s3']['bucket']['name'] # nyx-dev-uploads-123456
@@ -133,11 +149,9 @@ def process_s3_record(record: dict, table) -> bool:
 
     try:
         response = s3.head_object(Bucket=bucket, Key=key)
-
         # extract useful metadata
         content_type = response.get('ContentType', 'unknown') # "text/plain"
         etag = response.get('ETag', '').strip('"') # to remove quotes from ETag
-
     except s3.exceptions.ClientError as e:
         # handling S3 errors for nosuchkey, accessdenied, w/e
         logger.error(f"Failed to get S3 object metadata: {e}")
@@ -153,11 +167,9 @@ def process_s3_record(record: dict, table) -> bool:
     item = {
         'pk': f"FILE#{record_id}",
         'sk': f"PROCESSED#{event_time}",
-
         # GSI keys for time-based queries
         'gsi1pk': event_time[:10], # date only
         'gsi1sk': f"FILE#{record_id}", # for uniqueness
-
         # S3 Metadata
         'bucket': bucket,
         'key': key,
@@ -189,13 +201,6 @@ def process_s3_record(record: dict, table) -> bool:
 def get_metrics() -> dict:
     """
     Get processing metrics for steady state validation
-
-    In a production system, you might:
-    - Query CloudWatch for Lambda metrics
-    - Check DLQ depth
-    - Aggregate DynamoDB item counts
-
-    Use this for expansion later
     """
 
     return {
