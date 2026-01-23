@@ -35,6 +35,7 @@ output "dlq_url" {
   value       = aws_sqs_queue.dlq.url
 }
 
+/* dont work with terraform aws
 #FIS outputs
 output "fis_experiment_lambda_throttle_id" {
   description = "FIS experiment template ID for Lambda throttle"
@@ -46,6 +47,7 @@ output "fis_experiment_concurrency_limit_id" {
   description = "FIS experiment template ID for Lambda concurrency limit"
   value       = aws_fis_experiment_template.lambda_concurrency_limit.id
 }
+*/
 
 # Cloudwatch outputs
 

@@ -66,7 +66,7 @@ resource "aws_iam_role_policy" "fis" {
 # Terraform AWS provider doesn't support Lambda FIS targets yet
 # Create via AWS CLI after deploy
 
-
+/*
 resource "aws_fis_experiment_template" "lambda_throttle" {
   # description shows in FIS console and CloudTrail logs
   description = "Throttle Lambda to test S3 retry behavior and DLQ"
@@ -181,7 +181,7 @@ resource "aws_fis_experiment_template" "lambda_concurrency_limit" {
     Experiment = "lambda-concurrency-limit"
   }
 }
-
+*/
 
 # aws fis start-experiment -- experiment-template-id EXT123
 # FIS assumes role -> executes actions ->
