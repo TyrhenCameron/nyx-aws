@@ -1,6 +1,6 @@
 # S3 bucket for our file uploads to trigger Lambda functions
 resource "aws_s3_bucket" "uploads" {
-  bucket = "${local.name_prefix}-uploads-${local.account_id}"
+  bucket = "${local.name_prefix}-uploads-${local.account_id}-use1"
 
   tags = {
     Name = "${local.name_prefix}-uploads"

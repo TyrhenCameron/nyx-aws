@@ -1,0 +1,39 @@
+{
+  "description": "Throttle Lambda to test S3 retry behavior and DLQ",
+  "roleArn": "arn:aws:iam::<YOUR-ACCOUNT-ID>:role/nyx-dev-fis-role",
+  "stopConditions": [
+    {
+      "source": "aws:cloudwatch:alarm",
+      "value": "arn:aws:cloudwatch:us-east-1:<YOUR-ACCOUNT-ID>:alarm:nyx-dev-error-rate-high"
+    },
+    {
+      "source": "aws:cloudwatch:alarm",
+      "value": "arn:aws:cloudwatch:us-east-1:<YOUR-ACCOUNT-ID>:alarm:nyx-dev-dlq-depth-high"
+    }
+  ],
+  "targets": {
+    "lambda-target": {
+      "resourceType": "aws:lambda:function",
+      "resourceArns": [
+        "arn:aws:lambda:us-east-1:<YOUR-ACCOUNT-ID>:function:nyx-dev-processor"
+      ],
+      "selectionMode": "ALL"
+    }
+  },
+  "actions": {
+    "throttle-lambda": {
+      "actionId": "aws:lambda:function-concurrency-limit",
+      "description": "Set reserved concurrency to 0 (block all invocations)",
+      "parameters": {
+        "value": "0"
+      },
+      "targets": {
+        "Functions": "lambda-target"
+      }
+    }
+  },
+  "tags": {
+    "Name": "nyx-lambda-throttle",
+    "Project": "nyx"
+  }
+}

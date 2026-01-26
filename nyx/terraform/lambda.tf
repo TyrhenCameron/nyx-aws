@@ -128,6 +128,10 @@ resource "aws_lambda_function" "processor" {
   tags = {
     Name = "${local.name_prefix}-processor"
   }
+
+  depends_on = [
+    aws_iam_role_policy.lambda_custom
+  ]
 }
 
 # S3 perms to invoke lambda are needed else S3 gets permission denied when trying to trigger the lambda
